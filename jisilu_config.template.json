@@ -1,0 +1,11 @@
+{
+  "username": "your_phone_number",
+  "password": "your_password",
+  "filter": {
+    "剩余规模上限": 5.0,
+    "现价上限": 121.0,
+    "剩余年限上限": 5,
+    "剩余年限下限": 1.5,
+    "评级前缀": "A"
+  }
+}
