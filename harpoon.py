@@ -358,15 +358,37 @@ if __name__=='__main__':
         cov_mat = np.cov(np.vstack([sp, dp]), rowvar=True)
         eigen_vals, eigen_vecs = np.linalg.eigh(cov_mat)
 
-        plt.figure(figsize=(8, 6))
+        plt.figure(figsize=(10, 6))
         # 散点，用马氏距离着色
         sc = plt.scatter(plot_df['纯债溢价率'].values, plot_df['转股溢价率'].values,
                          c=distances.values, cmap='RdYlBu_r', s=40, edgecolors='k', linewidth=0.3)
-        # 标注转债名称
-        for i in range(len(plot_df)):
-            label = str(plot_df['转债名称'].values[i])[:2]
-            plt.annotate(label, xy=(plot_df['纯债溢价率'].values[i], plot_df['转股溢价率'].values[i]),
-                         xytext=(3, 3), textcoords='offset points', fontsize=6)
+        # 数字标记 + 图例
+        n = len(plot_df)
+        for i in range(n):
+            plt.annotate(str(i+1), xy=(plot_df['纯债溢价率'].values[i], plot_df['转股溢价率'].values[i]),
+                         xytext=(3, 3), textcoords='offset points', fontsize=5, color='black',
+                         clip_on=True)
+        # 图例表格（分多列，每列最多 30 条）
+        max_per_col = 30
+        ncols = math.ceil(n / max_per_col)
+        fig = plt.gcf()
+        ax_table = fig.add_axes([0.76, 0.05, 0.22, 0.9], visible=False)
+        ax_table.set_xlim(0, 1)
+        ax_table.set_ylim(0, 1)
+        for col in range(ncols):
+            start = col * max_per_col
+            end = min((col+1) * max_per_col, n)
+            cell_text = [[str(i+1), plot_df['转债名称'].values[i]] for i in range(start, end)]
+            col_widths = [0.08, 0.44]
+            table_x = 0.02 + col * 0.48
+            tbl = ax_table.table(cellText=cell_text, colWidths=col_widths,
+                                 loc='upper left',
+                                 bbox=[table_x, 0, 0.46, 0.98])
+            tbl.auto_set_font_size(False)
+            tbl.set_fontsize(5)
+            for key, cell in tbl.get_celld().items():
+                cell.set_linewidth(0)
+                cell.set_facecolor('none')
         # 理想中心
         plt.scatter(vb, va, c='red', marker='x', s=80, label='理想中心')
         # 马氏椭圆
