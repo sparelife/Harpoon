@@ -20,6 +20,10 @@ pd.set_option('display.max_columns',None)
 pd.set_option('display.width',1000)
 import matplotlib
 matplotlib.use('Agg')
+matplotlib.font_manager.fontManager.addfont(os.path.expanduser('~/.fonts/NotoSansCJKSC-Regular.ttf'))
+matplotlib.font_manager.fontManager.addfont(os.path.expanduser('~/.fonts/NotoSansCJKSC-Bold.ttf'))
+plt.rcParams['font.sans-serif']=['Noto Sans CJK SC', 'DejaVu Sans']
+plt.rcParams['axes.unicode_minus']=False
 
 # ── 集思录登录 ──────────────────────────────────────────
 JISILU_CONFIG = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'jisilu_config.json')
@@ -399,24 +403,27 @@ if __name__=='__main__':
             t = plt.text(plot_df['纯债溢价率'].values[i], plot_df['转股溢价率'].values[i],
                          short, fontsize=5, color='black')
             texts.append(t)
+        # 先只调整文字位置，不画箭头（避免 adjustText 内部 FancyArrowPatch 的 transform 警告）
         adjust_text(texts,
-                    arrowprops=dict(arrowstyle='->', color='black', lw=0.5),
                     force_text=(1.5, 2.0),
                     force_points=0.3,
                     expand=(1.5, 2.0),
                     lim=200,
                     ensure_inside_axes=False)
+        # 手动画箭头：从调整后的文字位置指向原始数据点
+        ax = plt.gca()
+        for i, t in enumerate(texts):
+            pos = t.get_position()  # 调整后的位置（data 坐标）
+            x0 = plot_df['纯债溢价率'].values[i]
+            y0 = plot_df['转股溢价率'].values[i]
+            ax.annotate('', xy=(x0, y0), xytext=pos,
+                        arrowprops=dict(arrowstyle='->', color='black', lw=0.5, shrinkA=5, shrinkB=5))
     else:
         plt.figure(figsize=(6, 4))
         plt.text(0.5, 0.5, '无满足条件的转债', ha='center', va='center',
                  transform=plt.gca().transAxes)
         plt.xlabel('纯债溢价率')
         plt.ylabel('转股溢价率')
-
-    matplotlib.font_manager.fontManager.addfont(os.path.expanduser('~/.fonts/NotoSansCJKSC-Regular.ttf'))
-    matplotlib.font_manager.fontManager.addfont(os.path.expanduser('~/.fonts/NotoSansCJKSC-Bold.ttf'))
-    plt.rcParams['font.sans-serif']=['Noto Sans CJK SC', 'DejaVu Sans']
-    plt.rcParams['axes.unicode_minus']=False
 
     fileimage = tnow.strftime('%Y_%m_%d') + '_image.png'
     imagepath =  "%s/%s" % (filefolder,fileimage)
