@@ -348,9 +348,12 @@ if __name__=='__main__':
     plot_df = bond_expect_sort_df.loc[bond_kgood_df.index].copy()
 
     if len(plot_df) > 0:
-        # 算每只转债的马氏距离
+        # 算每只转债的马氏距离，按距离从小到大排序
         distances = plot_df.apply(
             lambda r: calc_value_distance(r['转股溢价率'], r['纯债溢价率'], va, vb, cov_inv), axis=1)
+        plot_df = plot_df.copy()
+        plot_df['_dist'] = distances
+        plot_df = plot_df.sort_values('_dist', ascending=True)
 
         # 原始协方差矩阵（用于画椭圆）
         sp = np.array([0.81, 0, -0.1, -5.56, -3, 8.34, 0.28, -5.2, -8.24, 2.34, -7.3, -26.52, -0.29])
@@ -358,11 +361,11 @@ if __name__=='__main__':
         cov_mat = np.cov(np.vstack([sp, dp]), rowvar=True)
         eigen_vals, eigen_vecs = np.linalg.eigh(cov_mat)
 
-        plt.figure(figsize=(10, 6))
+        plt.figure(figsize=(12, 7))
         # 散点，用马氏距离着色
         sc = plt.scatter(plot_df['纯债溢价率'].values, plot_df['转股溢价率'].values,
-                         c=distances.values, cmap='RdYlBu_r', s=40, edgecolors='k', linewidth=0.3)
-        # 数字标记 + 图例
+                         c=plot_df['_dist'].values, cmap='RdYlBu_r', s=40, edgecolors='k', linewidth=0.3)
+        # 按距离从小到大编号标记
         n = len(plot_df)
         for i in range(n):
             plt.annotate(str(i+1), xy=(plot_df['纯债溢价率'].values[i], plot_df['转股溢价率'].values[i]),
@@ -388,24 +391,20 @@ if __name__=='__main__':
             plt.text(vb + d * np.sqrt(eigen_vals[1]), va,
                      'd=%.0f' % d, fontsize=7, color='gray')
 
-        plt.colorbar(sc, label='马氏距离')
+        cb = plt.colorbar(sc, label='马氏距离')
         plt.xlabel('纯债溢价率')
         plt.ylabel('转股溢价率')
         plt.legend(fontsize=8)
-        # 图例文本（分两列，每列最多 25 条）
-        ncols = 2
-        per_col = math.ceil(n / ncols)
+        # 转债名称图例（单列，放在 colorbar 右侧）
         fig = plt.gcf()
-        for col in range(ncols):
-            start = col * per_col
-            end = min((col+1) * per_col, n)
-            lines = []
-            for i in range(start, end):
-                lines.append("%3d  %s" % (i+1, plot_df['转债名称'].values[i]))
-            fig.text(0.73 + col * 0.14, 0.02, '\n'.join(lines), fontsize=5,
-                     ha='left', va='bottom',
-                     bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
-                               alpha=0.8, edgecolor='lightgray'))
+        lines = []
+        for i in range(n):
+            short = str(plot_df['转债名称'].values[i])[:2]
+            lines.append("%3d %s" % (i+1, short))
+        fig.text(0.91, 0.98, '\n'.join(lines), fontsize=5,
+                 ha='left', va='top',
+                 bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
+                           alpha=0.8, edgecolor='lightgray'))
     else:
         plt.figure(figsize=(6, 4))
         plt.text(0.5, 0.5, '无满足条件的转债', ha='center', va='center',
