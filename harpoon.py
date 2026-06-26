@@ -392,27 +392,20 @@ if __name__=='__main__':
         plt.xlabel('纯债溢价率')
         plt.ylabel('转股溢价率')
         plt.legend(fontsize=8)
-        # 图例表格（分多列，每列最多 30 条）
-        max_per_col = 30
-        ncols = math.ceil(n / max_per_col)
+        # 图例文本（分两列，每列最多 25 条）
+        ncols = 2
+        per_col = math.ceil(n / ncols)
         fig = plt.gcf()
-        ax_table = fig.add_axes([0.76, 0.05, 0.22, 0.9], visible=False)
-        ax_table.set_xlim(0, 1)
-        ax_table.set_ylim(0, 1)
         for col in range(ncols):
-            start = col * max_per_col
-            end = min((col+1) * max_per_col, n)
-            cell_text = [[str(i+1), plot_df['转债名称'].values[i]] for i in range(start, end)]
-            col_widths = [0.08, 0.44]
-            table_x = 0.02 + col * 0.48
-            tbl = ax_table.table(cellText=cell_text, colWidths=col_widths,
-                                 loc='upper left',
-                                 bbox=[table_x, 0, 0.46, 0.98])
-            tbl.auto_set_font_size(False)
-            tbl.set_fontsize(5)
-            for key, cell in tbl.get_celld().items():
-                cell.set_linewidth(0)
-                cell.set_facecolor('none')
+            start = col * per_col
+            end = min((col+1) * per_col, n)
+            lines = []
+            for i in range(start, end):
+                lines.append("%3d  %s" % (i+1, plot_df['转债名称'].values[i]))
+            fig.text(0.73 + col * 0.14, 0.02, '\n'.join(lines), fontsize=5,
+                     ha='left', va='bottom',
+                     bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
+                               alpha=0.8, edgecolor='lightgray'))
     else:
         plt.figure(figsize=(6, 4))
         plt.text(0.5, 0.5, '无满足条件的转债', ha='center', va='center',
