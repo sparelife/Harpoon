@@ -361,16 +361,12 @@ if __name__=='__main__':
         cov_mat = np.cov(np.vstack([sp, dp]), rowvar=True)
         eigen_vals, eigen_vecs = np.linalg.eigh(cov_mat)
 
-        plt.figure(figsize=(12, 7))
+        plt.figure(figsize=(9, 6))
         # 散点，用马氏距离着色
         sc = plt.scatter(plot_df['纯债溢价率'].values, plot_df['转股溢价率'].values,
                          c=plot_df['_dist'].values, cmap='RdYlBu_r', s=40, edgecolors='k', linewidth=0.3)
-        # 按距离从小到大编号标记
+        # 标注转债名称（缩写）
         n = len(plot_df)
-        for i in range(n):
-            plt.annotate(str(i+1), xy=(plot_df['纯债溢价率'].values[i], plot_df['转股溢价率'].values[i]),
-                         xytext=(3, 3), textcoords='offset points', fontsize=5, color='black',
-                         clip_on=True)
 
         # 理想中心
         plt.scatter(vb, va, c='red', marker='x', s=80, label='理想中心')
@@ -395,16 +391,21 @@ if __name__=='__main__':
         plt.xlabel('纯债溢价率')
         plt.ylabel('转股溢价率')
         plt.legend(fontsize=8)
-        # 转债名称图例（单列，放在 colorbar 右侧）
-        fig = plt.gcf()
-        lines = []
+        # 调整名称标注位置，重叠时自动拉线
+        from adjustText import adjust_text
+        texts = []
         for i in range(n):
             short = str(plot_df['转债名称'].values[i])[:2]
-            lines.append("%3d %s" % (i+1, short))
-        fig.text(0.91, 0.98, '\n'.join(lines), fontsize=5,
-                 ha='left', va='top',
-                 bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
-                           alpha=0.8, edgecolor='lightgray'))
+            t = plt.text(plot_df['纯债溢价率'].values[i], plot_df['转股溢价率'].values[i],
+                         short, fontsize=5, color='black')
+            texts.append(t)
+        adjust_text(texts,
+                    arrowprops=dict(arrowstyle='->', color='black', lw=0.5),
+                    force_text=(1.5, 2.0),
+                    force_points=0.3,
+                    expand=(1.5, 2.0),
+                    lim=200,
+                    ensure_inside_axes=False)
     else:
         plt.figure(figsize=(6, 4))
         plt.text(0.5, 0.5, '无满足条件的转债', ha='center', va='center',
