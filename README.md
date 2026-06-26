@@ -74,3 +74,125 @@ P(强赎|中间两年) = P(中间两年|强赎)P(强赎)/P(中间两年)
 第四: bombs/missiles中胜率和赔率事件不对应，胜率是超过当前价格的概率，而赔率是达到某一高价的赔率，严格
 来讲并不能使用凯利公式但是当前也没有太好的办法直接计算达到某一高价的概率(似乎来讲对策略B来说是0.93，对策略A是0.99)，
 这样高的胜率似乎对配置下注率有没有太大用处，使用模糊的胜率从结果来看貌似比较合理
+
+---
+
+## 环境要求
+
+- Python 3.8+
+- 使用 `akshare` 虚拟环境（路径：`/opt/finance_env/venv/bin/python`）
+- 依赖：`pip install akshare pandas numpy matplotlib openpyxl scikit-learn requests cryptography`
+
+## 配置文件
+
+在项目根目录创建 `jisilu_config.json`（已被 `.gitignore` 排除）：
+
+```json
+{
+  "username": "your_phone_number",
+  "password": "your_password",
+  "filter": {
+    "剩余规模上限": 5.0,
+    "现价上限": 121.0,
+    "剩余年限上限": 5,
+    "剩余年限下限": 1.5,
+    "评级前缀": "A"
+  }
+}
+```
+
+参考模板：`jisilu_config.template.json`
+
+## harpoon.py — 数据获取与初筛
+
+从集思录获取全市场可转债数据，计算**马氏距离**（基于理想样本的转股溢价率/纯债溢价率协方差），按配置过滤后输出分析报告。
+
+```
+用法: python harpoon.py [日期]
+
+  [日期]     不填            今天（默认）
+             2026-06-18    指定日期
+
+  过滤条件在 jisilu_config.json 中配置
+
+示例:
+  /opt/finance_env/venv/bin/python harpoon.py
+  /opt/finance_env/venv/bin/python harpoon.py 2026-06-26
+```
+
+**输出目录结构：**
+```
+data/<YYYYMMDD>/
+├── <YYYY_MM_DD>_in.xlsx          ← 集思录原始数据
+├── <YYYY_MM_DD>_out.xlsx         ← 分析结果（analyze / kgood / selected 三个标签页）
+└── <YYYY_MM_DD>_image.png        ← 散点图（马氏距离着色 + 等距椭圆）
+```
+
+**selected 标签页字段：** `代码`、`转债名称`、`剩余规模`、`含息价`、`剩余年限`
+
+---
+
+## missiles.py — 双低策略分析（策略B）
+
+基于 harpoon.py 输出的 `selected` 标签页，计算每只转债的**马氏距离估值分布**，用凯利公式估算胜率/赔率/下注比例。
+
+```
+用法: python missiles.py <文件路径> <日期>
+
+  <文件路径>    harpoon.py 输出的文件（含 selected 标签页）
+  <日期>        分析截止日期
+
+示例:
+  /opt/finance_env/venv/bin/python missiles.py data/20260625/2026_06_25_out.xlsx 2026-06-25
+```
+
+**输出：**
+```
+data/<输入日期目录>/
+├── <yyMMdd>/                     ← 中间数据（每只转债的日线 + 估值分析）
+│   ├── sh113546_trade.xlsx
+│   ├── sh113546_valanaly.xlsx
+│   └── ...
+└── <日期>_kelly_missiles.xlsx    ← 最终结果（kelly / opt-kelly 标签页）
+```
+
+**胜率计算逻辑：** 历史中马氏距离大于当前值的占比
+**赔率计算逻辑：** `(参考估价 - 当前价) / (当前价 - 保底价)`
+
+---
+
+## bombs.py — 低溢价波动策略分析（策略A）
+
+与 missiles.py 结构相同，区别在于策略逻辑和过滤参数：
+
+- 策略A关注：**低转股溢价率 + 高波动性**
+- 使用异动涨幅估算参考估价（而非固定值）
+- 过滤条件：`年均异动 >= 3.0`，`下注比例 >= 0.1`
+
+```
+用法: python bombs.py <文件路径> <日期>
+
+  <文件路径>    harpoon.py 输出的文件（含 selected 标签页）
+  <日期>        分析截止日期
+
+示例:
+  /opt/finance_env/venv/bin/python bombs.py data/20260625/2026_06_25_out.xlsx 2026-06-25
+```
+
+**输出：**
+```
+data/<输入日期目录>/
+├── <yyMMdd>/                     ← 中间数据（与 missiles.py 共用缓存）
+└── <日期>_kelly_bombs.xlsx       ← 最终结果（kelly / opt-kelly 标签页）
+```
+
+---
+
+## 数据目录约定
+
+| 路径 | 用途 |
+|------|------|
+| `./data/primary/` | akshare 原始数据缓存（跨脚本共用） |
+| `./data/<YYYYMMDD>/` | harpoon.py 输出（全市场分析） |
+| `./data/<YYYYMMDD>/<yyMMdd>/` | missiles.py / bombs.py 中间数据 |
+| `./data/<YYYYMMDD>/<日期>_kelly_*.xlsx` | missiles.py / bombs.py 最终结果 |

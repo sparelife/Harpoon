@@ -1,8 +1,8 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 import akshare as ak
-import numpy as np  
-import pandas as pd  
+import numpy as np
+import pandas as pd
 import math
 import datetime
 import os
@@ -13,92 +13,70 @@ import time
 import warnings
 from pandas.core.generic import SettingWithCopyWarning
 
-def get_akshare_daily(stock,end):
-	xlsfile =  "./bond/primary/%s_trade.xlsx" % (stock)
-	datefolder = r'./bond/' + end
-	outfile = "./%s/%s_trade.xlsx" % (datefolder,stock)
-	shname='trade'
-	
-	folderExist = os.path.exists(datefolder)
-	if not folderExist:
-			os.makedirs(datefolder)
-			print("daily:%s create" % (datefolder))
-	else:
-			print("daily:%s exist" % (datefolder))
+def get_akshare_daily(stock, end, out_dir):
+		xlsfile =  "./data/primary/%s_trade.xlsx" % (stock)
+		outfile = "%s/%s_trade.xlsx" % (out_dir, stock)
+		shname='trade'
 
-	isExist = os.path.exists(xlsfile)
-	#dateend = end
-	dateend = datetime.datetime.strptime(end,'%Y-%m-%d').strftime("%Y-%m-%d %H:%M:%S")
-	
-	if not isExist:
-		bond_zh_hs_cov_daily_df = ak.bond_zh_hs_cov_daily(symbol=stock)
-		bond_zh_hs_cov_daily_df.to_excel(xlsfile,sheet_name=shname)
-		print("xfsfile:%s create" % (xlsfile))
-		
-		bond_zh_hs_cov_daily_df = pd.read_excel(xlsfile, sheet_name=shname,index_col=0,converters={'date': str})
+		os.makedirs('./data/primary', exist_ok=True)
+		os.makedirs(out_dir, exist_ok=True)
+
+		dateend = datetime.datetime.strptime(end,'%Y-%m-%d').strftime("%Y-%m-%d %H:%M:%S")
+
+		isExist = os.path.exists(xlsfile)
+		if not isExist:
+			bond_zh_hs_cov_daily_df = ak.bond_zh_hs_cov_daily(symbol=stock)
+			bond_zh_hs_cov_daily_df.to_excel(xlsfile, sheet_name=shname)
+			print("xfsfile:%s create" % (xlsfile))
+		else:
+			print("xfsfile:%s exist" % (xlsfile))
+
+		bond_zh_hs_cov_daily_df = pd.read_excel(xlsfile, sheet_name=shname, index_col=0, converters={'date': str})
 		bond_zh_hs_cov_daily_df = bond_zh_hs_cov_daily_df[ bond_zh_hs_cov_daily_df['date'] <= dateend ]
 		if bond_zh_hs_cov_daily_df.empty:
 			raise ValueError('no data before ' + end)
-		bond_zh_hs_cov_daily_df.to_excel(outfile,sheet_name=shname)
-		print("xfsfile:%s create" % (outfile))  
-	else:
-		bond_zh_hs_cov_daily_df = pd.read_excel(xlsfile, sheet_name=shname,index_col=0,converters={'date': str})
-		bond_zh_hs_cov_daily_df = bond_zh_hs_cov_daily_df[ bond_zh_hs_cov_daily_df['date'] <= dateend ]
-		if bond_zh_hs_cov_daily_df.empty:
-			raise ValueError('no data before ' + end)
-		bond_zh_hs_cov_daily_df.to_excel(outfile,sheet_name=shname)
+		bond_zh_hs_cov_daily_df.to_excel(outfile, sheet_name=shname)
 		print("xfsfile:%s create" % (outfile))
-	return outfile,shname
+		return outfile, shname
 
-def get_akshare_valanaly(stock,end):
-	xlsfile =  "./bond/primary/%s_valanaly.xlsx" % (stock)
-	datefolder = r'./bond/' + end
-	outfile = "./%s/%s_valanaly.xlsx" % (datefolder,stock)
-	shname='valanaly'
-	
-	folderExist = os.path.exists(datefolder)
-	if not folderExist:
-			os.makedirs(datefolder)
-			print("daily:%s create" % (datefolder))
-	else:
-			print("daily:%s exist" % (datefolder))
+def get_akshare_valanaly(stock, end, out_dir):
+		xlsfile =  "./data/primary/%s_valanaly.xlsx" % (stock)
+		outfile = "%s/%s_valanaly.xlsx" % (out_dir, stock)
+		shname='valanaly'
 
-	
-	isExist = os.path.exists(xlsfile)
-	#dateend = end
-	dateend = datetime.datetime.strptime(end,'%Y-%m-%d').strftime("%Y-%m-%d %H:%M:%S")
-	
-	if not isExist:
-		bond_zh_cov_value_analysis_df = ak.bond_zh_cov_value_analysis(symbol=stock)
-		bond_zh_cov_value_analysis_df.to_excel(xlsfile,sheet_name=shname)
-		print("xfsfile:%s create" % (xlsfile))
-		bond_zh_cov_value_analysis_df = pd.read_excel(xlsfile, sheet_name=shname,index_col=0,converters={'日期': str})
+		os.makedirs('./data/primary', exist_ok=True)
+		os.makedirs(out_dir, exist_ok=True)
+
+		dateend = datetime.datetime.strptime(end,'%Y-%m-%d').strftime("%Y-%m-%d %H:%M:%S")
+
+		isExist = os.path.exists(xlsfile)
+		if not isExist:
+			bond_zh_cov_value_analysis_df = ak.bond_zh_cov_value_analysis(symbol=stock)
+			bond_zh_cov_value_analysis_df.to_excel(xlsfile, sheet_name=shname)
+			print("xfsfile:%s create" % (xlsfile))
+		else:
+			print("xfsfile:%s exist" % (xlsfile))
+
+		bond_zh_cov_value_analysis_df = pd.read_excel(xlsfile, sheet_name=shname, index_col=0, converters={'日期': str})
 		bond_zh_cov_value_analysis_df = bond_zh_cov_value_analysis_df[ bond_zh_cov_value_analysis_df['日期'] <= dateend ]
 		if bond_zh_cov_value_analysis_df.empty:
 			raise ValueError('no data before ' + end)
-		bond_zh_cov_value_analysis_df.to_excel(outfile,sheet_name=shname)
-		print("xfsfile:%s create" % (outfile))  
-	else:
-		bond_zh_cov_value_analysis_df = pd.read_excel(xlsfile, sheet_name=shname,index_col=0,converters={'日期': str})
-		bond_zh_cov_value_analysis_df = bond_zh_cov_value_analysis_df[ bond_zh_cov_value_analysis_df['日期'] <= dateend ]
-		if bond_zh_cov_value_analysis_df.empty:
-			raise ValueError('no data before ' + end)
-		bond_zh_cov_value_analysis_df.to_excel(outfile,sheet_name=shname)
+		bond_zh_cov_value_analysis_df.to_excel(outfile, sheet_name=shname)
 		print("xfsfile:%s create" % (outfile))
-	return outfile,shname
+		return outfile, shname
 
 def getkellybEx(value,expval,maxval,ltyear):
-	# 赔率=获胜时的净盈利/成本
-	# 利息损失 = (value*(1+大额存单利率)**2 -value) - (value*(1+到期利率)**2 - value)
-	deficit = value*(1+0.03)**ltyear - expval
-	kellyb = 0.01
-	if deficit <= 1:
-		kellyb = (maxval-value-deficit)/1
-	else:
-		kellyb = (maxval-value-deficit)/deficit
+		# 赔率=获胜时的净盈利/成本
+		# 利息损失 = (value*(1+大额存单利率)**2 -value) - (value*(1+到期利率)**2 - value)
+		deficit = value*(1+0.03)**ltyear - expval
+		kellyb = 0.01
+		if deficit <= 1:
+			kellyb = (maxval-value-deficit)/1
+		else:
+			kellyb = (maxval-value-deficit)/deficit
 
-	#print("kellyb:%f" % (kellyb))
-	return kellyb
+		#print("kellyb:%f" % (kellyb))
+		return kellyb
 
 
 def cal_close_inc(volume_df,close):
@@ -123,33 +101,33 @@ def get_crash_dbscan_df(path,name):
 	crashlow =  crashsta['30%']
 	crashhigh = crashsta['70%']
 	middle_crash_df = bond_cov_crash_df[ (bond_cov_crash_df[['crash']] < crashhigh) & (bond_cov_crash_df[['crash']] > crashlow)]
-	
+
 	middlesta = middle_crash_df['crash'].describe()
 
 	middlepes = middlesta['std']
 	print("crashlow:%f,crashhigh:%f,EPS:%f" %(crashlow,crashhigh,middlepes))
-	
+
 	#first cluster to find abnormal days
 	outlier_det=DBSCAN(min_samples=2,eps=middlepes)
 	clusters = outlier_det.fit_predict(bond_cov_crash_df[['crash']].values)
 	print("abnormal crash count:%d" % list(clusters).count(-1))
 	bond_cov_crash_df['flag'] = clusters
 
-	
+
 	bond_cov_collapse_df = bond_cov_crash_df[ bond_cov_crash_df['flag'] == -1]
-	
+
 	#second cluster to cut abnormaldays to several paragraph
 	bond_cov_collapse_df['ts'] = bond_cov_collapse_df.apply(lambda row: time.mktime(time.strptime(str(row['date']),"%Y-%m-%d %H:%M:%S")), axis=1)
 	#print(bond_cov_collapse_df[['ts']].values)
 	abnlier_det=DBSCAN(min_samples=2,eps=7*86400)
 	bond_cov_collapse_df['type'] = abnlier_det.fit_predict(bond_cov_collapse_df[['ts']].values.astype(int))
 	#print(abnormal_df['type'])
-	
+
 	if not os.path.exists(path):
-		bond_cov_collapse_df.to_excel(writer, 'crash')
+		bond_cov_collapse_df.to_excel(writer, sheet_name='crash')
 	else:
 		with pd.ExcelWriter(path,engine='openpyxl',mode='a',if_sheet_exists='replace') as writer:
-			bond_cov_collapse_df.to_excel(writer, 'crash')	
+			bond_cov_collapse_df.to_excel(writer, sheet_name='crash')
 	return bond_cov_collapse_df
 
 def get_abnormal_dbscan_df(path,name):
@@ -158,21 +136,21 @@ def get_abnormal_dbscan_df(path,name):
 	valuelow =  volumesta['30%']
 	valuehigh = volumesta['70%']
 	middle_volume_df = bond_cov_volume_df[ (bond_cov_volume_df[['volume']] < valuehigh) & (bond_cov_volume_df[['volume']] > valuelow)]
-	
+
 	middlesta = middle_volume_df['volume'].describe()
 	middlepes = middlesta['std']
 	print("volumnlow:%f,volumnhigh:%f,EPS:%f" %(valuelow,valuehigh,middlepes))
-	
+
 	#first cluster to find abnormal days
 	outlier_det=DBSCAN(min_samples=2,eps=middlepes)
 	clusters = outlier_det.fit_predict(bond_cov_volume_df[['volume']].values)
 	print("abnormal volumn count:%d" % list(clusters).count(-1))
 	bond_cov_volume_df['flag'] = clusters
 
-	
+
 	bond_cov_abnormal_df = bond_cov_volume_df[ bond_cov_volume_df['flag'] == -1]
-	
-	
+
+
 	abnormal_index = bond_cov_abnormal_df.index.values.tolist()
 	for cur, nxt in zip (abnormal_index, abnormal_index [1:] ):
 		#print (cur, nxt)
@@ -193,13 +171,13 @@ def get_abnormal_dbscan_df(path,name):
 	abnlier_det=DBSCAN(min_samples=2,eps=7*86400)
 	bond_cov_abnormal_df['type'] = abnlier_det.fit_predict(bond_cov_abnormal_df[['ts']].values.astype(int))
 	#print(abnormal_df['type'])
-	
+
 	#print(bond_cov_volume_df)
 	if not os.path.exists(path):
-		bond_cov_abnormal_df.to_excel(writer, 'abnormal')
+		bond_cov_abnormal_df.to_excel(writer, sheet_name='abnormal')
 	else:
 		with pd.ExcelWriter(path,engine='openpyxl',mode='a',if_sheet_exists='replace') as writer:
-			bond_cov_abnormal_df.to_excel(writer, 'abnormal')	
+			bond_cov_abnormal_df.to_excel(writer, sheet_name='abnormal')
 	return bond_cov_abnormal_df
 
 
@@ -217,11 +195,11 @@ def guess_abnormal_parameter_additional(abnormal_df,tradeyear):
 		totalcount = len(element_counts)
 
 	abnperyear = totalcount/tradeyear
-	
+
 	#假设每年只取一次波动，那么该异动涨幅应该位于所有波动的前1/abnperyear分位
 	rate = abnormal_df.apply(lambda row: 100*(row['high']-row['open'])/row['open'], axis=1)
 	abnrate = rate.quantile(1-1/abnperyear)
-	
+
 	return abnperyear,abnrate
 
 
@@ -239,12 +217,12 @@ def get_abnormal_standard_df(path,name):
 
 	bond_cov_volume_df = bond_cov_volume_df[ (bond_cov_volume_df[['volume']] < volume_low) | (bond_cov_volume_df[['volume']] > volume_high)]
 	print(bond_cov_volume_df)
-	
+
 	if not os.path.exists(path):
-		bond_cov_volume_df.to_excel(writer, 'abnormal',index=False)
+		bond_cov_volume_df.to_excel(writer, sheet_name='abnormal', index=False)
 	else:
 		with pd.ExcelWriter(path,engine='openpyxl',mode='a') as writer:
-			bond_cov_volume_df.to_excel(writer, 'abnormal',index=False)	
+			bond_cov_volume_df.to_excel(writer, sheet_name='abnormal', index=False)
 	return bond_cov_volume_df
 
 
@@ -274,23 +252,48 @@ def get_daily_df(path,name,price):
 	bond_cov_daily_df = pd.concat([bond_cov_daily_df_open, bond_cov_daily_df_low, bond_cov_daily_df_high, bond_cov_daily_df_close])
 	return bond_cov_daily_df
 
-def get_valanaly_df(path,name):
+def calc_value_center():
+	stock_premium = [0.81,0,-0.1,-5.56,-3,8.34,0.28,-5.2,-8.24,2.34,-7.3,-26.52,-0.29]
+	debt_premium =  [-2.79,0.79,2.09,2.58,2.89,4.63,5.18,7.33,7.4,7.44,7.46,9.23,9.52]
+	return np.mean(stock_premium),np.mean(debt_premium)
+
+def calc_mahalanobis_inv():
+	"""根据理想样本计算 2×2 协方差逆矩阵（马氏距离用）"""
+	stock_premium = np.array([0.81, 0, -0.1, -5.56, -3, 8.34, 0.28, -5.2, -8.24, 2.34, -7.3, -26.52, -0.29])
+	debt_premium  = np.array([-2.79, 0.79, 2.09, 2.58, 2.89, 4.63, 5.18, 7.33, 7.4, 7.44, 7.46, 9.23, 9.52])
+	data = np.vstack([stock_premium, debt_premium]).T
+	cov = np.cov(data, rowvar=False)
+	return np.linalg.inv(cov)
+
+def calc_value_distance(a, b, va, vb, cov_inv):
+	"""马氏距离：sqrt(diffᵀ · Σ⁻¹ · diff)"""
+	diff = np.array([a - va, b - vb])
+	return math.sqrt(diff @ cov_inv @ diff)
+
+def get_valanaly_df(path, name, distance):
 	bond_cov_valanaly_df = pd.read_excel(path, name)
+	va, vb = calc_value_center()
+	cov_inv = calc_mahalanobis_inv()
+	bond_cov_valanaly_df[distance] = bond_cov_valanaly_df.apply(lambda row: calc_value_distance(row['纯债溢价率'], row['转股溢价率'], va, vb, cov_inv), axis=1)
+	bond_cov_valanaly_df = bond_cov_valanaly_df[['日期','收盘价','纯债价值','转股价值','纯债溢价率','转股溢价率',distance]]
+
+	with pd.ExcelWriter(path,engine='openpyxl',mode='a',if_sheet_exists='replace') as writer:
+			bond_cov_valanaly_df.to_excel(writer, sheet_name=name, index=False)
 	return bond_cov_valanaly_df
 
 
 def select_interest_some(writer,bond_expect_df,tag):
 		bond_expect_df = bond_expect_df.sort_values('下注比例', ascending=False)
-		bond_expect_df.to_excel(writer, tag)
+		bond_expect_df.to_excel(writer, sheet_name=tag)
 		optimaltag = 'opt-'+ tag;
 		bond_expect_selected_df = bond_expect_df[(bond_expect_df['年均异动'] >= 3.0) & (bond_expect_df['下注比例'] >= 0.1) & (bond_expect_df['交易周期'] >= 1)]
 		bond_expect_selected_df = bond_expect_selected_df.sort_values('交易周期', ascending=False)
-		bond_expect_selected_df.to_excel(writer, optimaltag)
+		bond_expect_selected_df.to_excel(writer, sheet_name=optimaltag)
 
 if __name__=='__main__':
 		from sys import argv
 		warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
-		
+
 		interestpath = ''
 		today = datetime.datetime.now()
 		if len(argv) > 2:
@@ -299,21 +302,34 @@ if __name__=='__main__':
 			else:
 				today = datetime.datetime.strptime(argv[2], '%Y-%m-%d').strftime('%Y-%m-%d')
 			print('**************computerday:%s*************' % today)
-			
+
 			interestpath = argv[1]
 			isExist = os.path.exists(interestpath)
-			if not isExist or 'selected' not in interestpath:
+			if not isExist:
 				print("please make sure the path:" + interestpath)
 				exit(1)
 		else:
-			print("please run like 'python cartridge.py [file] [2022-08-22]'")
+			print("用法:  python bombs.py <文件路径> <日期>")
+			print()
+			print("  <文件路径>    harpoon.py 输出的文件（含 selected 标签页）")
+			print("  <日期>        2026-06-26    分析截止日期")
+			print()
+			print("示例:")
+			print("  python bombs.py data/20260625/2026_06_25_out.xlsx 2026-06-25")
 			exit(1)
-		
-			
-		bond_interest_df = pd.read_excel(interestpath, 'clause')
-		bond_kelly_df = pd.DataFrame(columns=['名称', '代码', '胜率', '赔率', '下注比例','纯债溢价率','当前价格','参考估价','保底涨幅','保底价格','00分位', '50分位', '100分位' ,'剩余规模','交易周期','年均异动','最后异动','异动阈值','异动涨幅','最后崩溃','崩溃阈值'])
+
+
+		bond_interest_df = pd.read_excel(interestpath, 'selected')
+		input_dir = os.path.dirname(os.path.abspath(interestpath))
+		intermediate_tag = datetime.datetime.strptime(today, '%Y-%m-%d').strftime('%y%m%d')
+		intermediate_dir = os.path.join(input_dir, intermediate_tag)
+		bond_interest_df = bond_interest_df.rename(columns={
+			'转债名称': 'name', '代码': 'code', '剩余规模': 'remain',
+			'含息价': 'expval', '剩余年限': 'lastyear'
+		})
+		bond_kelly_df = pd.DataFrame(columns=['名称', '代码', '胜率', '赔率', '下注比例','估值距离','当前价格','参考估价','保底涨幅','保底价格','00分位', '50分位', '100分位' ,'剩余规模','交易周期','年均异动','最后异动','异动阈值','异动涨幅','最后崩溃','崩溃阈值'])
 		money = 'money'
-		ratio = 'ratio'
+		distance = '估值距离'
 		for i, bondrow in bond_interest_df.iterrows():
 			name = bondrow['name'];
 			bond = bondrow['code'];
@@ -326,28 +342,28 @@ if __name__=='__main__':
 			try:
 				#the bond like '113546' not 'sh113546'
 				numbond = bond[2:]
-				valuepath,valuesheet = get_akshare_valanaly(numbond,today)
+				valuepath,valuesheet = get_akshare_valanaly(numbond, today, intermediate_dir)
 			except Exception as result:
 				print(bond + " get bond error:" + str(result))
 				continue
 			print("get datapath ok:" + valuepath + ",sheetname:" +valuesheet)
 
-			bond_cov_valanaly_df = get_valanaly_df(valuepath,valuesheet)
+			bond_cov_valanaly_df = get_valanaly_df(valuepath, valuesheet, distance)
 			#print(bond_cov_valanaly_df)
 			totalcounts =  bond_cov_valanaly_df.shape[0]
-			prerate = bond_cov_valanaly_df.loc[totalcounts-1]['纯债溢价率']
+			distancetval = bond_cov_valanaly_df.loc[totalcounts-1][distance]
 			datevalue  = bond_cov_valanaly_df.loc[totalcounts-1]['日期']
 			pricevalue = bond_cov_valanaly_df.loc[totalcounts-1]['收盘价']
-			wincounts = (bond_cov_valanaly_df[ bond_cov_valanaly_df['纯债溢价率'] > prerate ]).shape[0]
-			print("totalcounts,wincounts,prerate,datevalue :",totalcounts,wincounts,prerate,datevalue)
+			wincounts = (bond_cov_valanaly_df[ bond_cov_valanaly_df[distance] > distancetval ]).shape[0]
+			print("totalcounts,wincounts,distancetval,datevalue :",totalcounts,wincounts,distancetval,datevalue)
 			#胜率=成功总次数/(成功总次数+失败总次数)
 			kellyp = wincounts / totalcounts
-			
+
 			dailysta = bond_cov_valanaly_df['收盘价'].describe()
 			valuemin = dailysta['min'];valuemax = dailysta['max'];value50 = dailysta['50%']
 
 			try:
-				resultpath,insheetname = get_akshare_daily(bond,today)
+				resultpath,insheetname = get_akshare_daily(bond, today, intermediate_dir)
 			except Exception as result:
 				print(bond + " get bond error:" + str(result))
 				continue
@@ -357,22 +373,22 @@ if __name__=='__main__':
 			#异动指标
 			try:
 				bond_cov_collapse_df  = get_crash_dbscan_df(resultpath,insheetname)
-				collapselatest = bond_cov_collapse_df.iloc[-1][0]
+				collapselatest = bond_cov_collapse_df.iloc[-1, 0]
 				collapseminvol = np.max(bond_cov_collapse_df['crash'])
-				
+
 				bond_cov_abnormal_df = get_abnormal_dbscan_df(resultpath,insheetname)
 				cntguess,abnrate= guess_abnormal_parameter_additional(bond_cov_abnormal_df,tradeyear)
-				valguess = pricevalue*(1+abnrate/100)	
-				print("guess abnormal counts per year:%f,guess abnormal price:%f,guess abnormal rate per year:%f" % (cntguess,valguess,abnrate)) 
-				
+				valguess = pricevalue*(1+abnrate/100)
+				print("guess abnormal counts per year:%f,guess abnormal price:%f,guess abnormal rate per year:%f" % (cntguess,valguess,abnrate))
+
 				#赔率2=各次异动条件下最大盈利中位数/失败时利息损失
 				abnval = valguess
-				kellyb1 = getkellybEx(pricevalue,expval,abnval,6-tradeyear) 
+				kellyb1 = getkellybEx(pricevalue,expval,abnval,6-tradeyear)
 				print("abnormalhighmiddle:%f" % abnval)
 
 				#250个交易日
 				abnormalperyear = cntguess
-				abnormallatest = bond_cov_abnormal_df.iloc[-1][0]
+				abnormallatest = bond_cov_abnormal_df.iloc[-1, 0]
 				abnormalminvol = np.min(bond_cov_abnormal_df['volume'])
 				#print("--->"+str(abnormalminvol))
 			except Exception as result:
@@ -385,11 +401,11 @@ if __name__=='__main__':
 			#下注比例,对于负赔率或负值结果直接置零
 			if kellyb1 <= 0  or kellyf1 < 0:
 				kellyf1 = 0
-			
-			
+
+
 			exppercent = 100*(expval-pricevalue)/pricevalue
-			
-			bond_kelly_df = pd.concat([bond_kelly_df,pd.DataFrame({'名称':[name],'代码':[bond],'胜率':[kellyp],'赔率':[kellyb1],'下注比例':[kellyf1],'纯债溢价率':[prerate],
+
+			bond_kelly_df = pd.concat([bond_kelly_df,pd.DataFrame({'名称':[name],'代码':[bond],'胜率':[kellyp],'赔率':[kellyb1],'下注比例':[kellyf1],'估值距离':[distancetval],
 			'当前价格':[pricevalue],'参考估价':[abnval],'保底涨幅':[exppercent],'保底价格':[expval],'00分位':[valuemin],'50分位':[value50],'100分位':[valuemax],'剩余规模':[remain],'交易周期':[tradeyear],
 			'年均异动':[abnormalperyear],'最后异动':[abnormallatest],'异动阈值':[abnormalminvol],'异动涨幅':[abnrate],
 			'最后崩溃':[collapselatest],'崩溃阈值':[collapseminvol]})],ignore_index=True)
@@ -398,16 +414,11 @@ if __name__=='__main__':
 		#print(bond_kelly_df)
 
 		fileout = today + '_kelly_bombs.xlsx'
-		outanalypath = "%s/%s" % ('bond', fileout)
+		outanalypath = os.path.join(input_dir, fileout)
+		os.makedirs(input_dir, exist_ok=True)
 		writer = pd.ExcelWriter(outanalypath)
 		#bond_kelly_df.to_excel(writer, 'kelly')
 		select_interest_some(writer, bond_kelly_df, 'kelly')
 		#writer.save()
 		writer.close()
 		print("kelly analy out path:" + outanalypath)
-
-
-
-
-
-
