@@ -252,33 +252,9 @@ def get_daily_df(path,name,price):
 	bond_cov_daily_df = pd.concat([bond_cov_daily_df_open, bond_cov_daily_df_low, bond_cov_daily_df_high, bond_cov_daily_df_close])
 	return bond_cov_daily_df
 
-def calc_value_center():
-	stock_premium = [0.81,0,-0.1,-5.56,-3,8.34,0.28,-5.2,-8.24,2.34,-7.3,-26.52,-0.29]
-	debt_premium =  [-2.79,0.79,2.09,2.58,2.89,4.63,5.18,7.33,7.4,7.44,7.46,9.23,9.52]
-	return np.mean(stock_premium),np.mean(debt_premium)
-
-def calc_mahalanobis_inv():
-	"""根据理想样本计算 2×2 协方差逆矩阵（马氏距离用）"""
-	stock_premium = np.array([0.81, 0, -0.1, -5.56, -3, 8.34, 0.28, -5.2, -8.24, 2.34, -7.3, -26.52, -0.29])
-	debt_premium  = np.array([-2.79, 0.79, 2.09, 2.58, 2.89, 4.63, 5.18, 7.33, 7.4, 7.44, 7.46, 9.23, 9.52])
-	data = np.vstack([stock_premium, debt_premium]).T
-	cov = np.cov(data, rowvar=False)
-	return np.linalg.inv(cov)
-
-def calc_value_distance(a, b, va, vb, cov_inv):
-	"""马氏距离：sqrt(diffᵀ · Σ⁻¹ · diff)"""
-	diff = np.array([a - va, b - vb])
-	return math.sqrt(diff @ cov_inv @ diff)
-
-def get_valanaly_df(path, name, distance):
+def get_valanaly_df(path, name):
 	bond_cov_valanaly_df = pd.read_excel(path, name)
-	va, vb = calc_value_center()
-	cov_inv = calc_mahalanobis_inv()
-	bond_cov_valanaly_df[distance] = bond_cov_valanaly_df.apply(lambda row: calc_value_distance(row['纯债溢价率'], row['转股溢价率'], va, vb, cov_inv), axis=1)
-	bond_cov_valanaly_df = bond_cov_valanaly_df[['日期','收盘价','纯债价值','转股价值','纯债溢价率','转股溢价率',distance]]
-
-	with pd.ExcelWriter(path,engine='openpyxl',mode='a',if_sheet_exists='replace') as writer:
-			bond_cov_valanaly_df.to_excel(writer, sheet_name=name, index=False)
+	bond_cov_valanaly_df = bond_cov_valanaly_df[['日期','收盘价','纯债价值','转股价值','纯债溢价率','转股溢价率']]
 	return bond_cov_valanaly_df
 
 
@@ -327,9 +303,9 @@ if __name__=='__main__':
 			'转债名称': 'name', '代码': 'code', '剩余规模': 'remain',
 			'含息价': 'expval', '剩余年限': 'lastyear'
 		})
-		bond_kelly_df = pd.DataFrame(columns=['名称', '代码', '胜率', '赔率', '下注比例','估值距离','当前价格','参考估价','保底涨幅','保底价格','00分位', '50分位', '100分位' ,'剩余规模','交易周期','年均异动','最后异动','异动阈值','异动涨幅','最后崩溃','崩溃阈值'])
+		bond_kelly_df = pd.DataFrame(columns=['名称', '代码', '胜率', '赔率', '下注比例','纯债溢价率','当前价格','参考估价','保底涨幅','保底价格','00分位', '50分位', '100分位' ,'剩余规模','交易周期','年均异动','最后异动','异动阈值','异动涨幅','最后崩溃','崩溃阈值'])
 		money = 'money'
-		distance = '估值距离'
+		ratio = '纯债溢价率'
 		for i, bondrow in bond_interest_df.iterrows():
 			name = bondrow['name'];
 			bond = bondrow['code'];
@@ -348,14 +324,14 @@ if __name__=='__main__':
 				continue
 			print("get datapath ok:" + valuepath + ",sheetname:" +valuesheet)
 
-			bond_cov_valanaly_df = get_valanaly_df(valuepath, valuesheet, distance)
+			bond_cov_valanaly_df = get_valanaly_df(valuepath, valuesheet)
 			#print(bond_cov_valanaly_df)
 			totalcounts =  bond_cov_valanaly_df.shape[0]
-			distancetval = bond_cov_valanaly_df.loc[totalcounts-1][distance]
+			prerate = bond_cov_valanaly_df.loc[totalcounts-1][ratio]
 			datevalue  = bond_cov_valanaly_df.loc[totalcounts-1]['日期']
 			pricevalue = bond_cov_valanaly_df.loc[totalcounts-1]['收盘价']
-			wincounts = (bond_cov_valanaly_df[ bond_cov_valanaly_df[distance] > distancetval ]).shape[0]
-			print("totalcounts,wincounts,distancetval,datevalue :",totalcounts,wincounts,distancetval,datevalue)
+			wincounts = (bond_cov_valanaly_df[ bond_cov_valanaly_df[ratio] > prerate ]).shape[0]
+			print("totalcounts,wincounts,prerate,datevalue :",totalcounts,wincounts,prerate,datevalue)
 			#胜率=成功总次数/(成功总次数+失败总次数)
 			kellyp = wincounts / totalcounts
 
@@ -405,7 +381,7 @@ if __name__=='__main__':
 
 			exppercent = 100*(expval-pricevalue)/pricevalue
 
-			bond_kelly_df = pd.concat([bond_kelly_df,pd.DataFrame({'名称':[name],'代码':[bond],'胜率':[kellyp],'赔率':[kellyb1],'下注比例':[kellyf1],'估值距离':[distancetval],
+			bond_kelly_df = pd.concat([bond_kelly_df,pd.DataFrame({'名称':[name],'代码':[bond],'胜率':[kellyp],'赔率':[kellyb1],'下注比例':[kellyf1],'纯债溢价率':[prerate],
 			'当前价格':[pricevalue],'参考估价':[abnval],'保底涨幅':[exppercent],'保底价格':[expval],'00分位':[valuemin],'50分位':[value50],'100分位':[valuemax],'剩余规模':[remain],'交易周期':[tradeyear],
 			'年均异动':[abnormalperyear],'最后异动':[abnormallatest],'异动阈值':[abnormalminvol],'异动涨幅':[abnrate],
 			'最后崩溃':[collapselatest],'崩溃阈值':[collapseminvol]})],ignore_index=True)
