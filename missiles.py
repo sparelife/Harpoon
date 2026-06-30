@@ -141,7 +141,7 @@ def get_abnormal_dbscan_df(path,name):
 	print("volumnlow:%f,volumnhigh:%f,EPS:%f" %(valuelow,valuehigh,middlepes))
 
 	#first cluster to find abnormal days
-	outlier_det=DBSCAN(min_samples=2,eps=middlepes)
+	outlier_det=DBSCAN(min_samples=3,eps=middlepes)
 	clusters = outlier_det.fit_predict(bond_cov_volume_df[['volume']].values)
 	print("abnormal volumn count:%d" % list(clusters).count(-1))
 	bond_cov_volume_df['flag'] = clusters
