@@ -411,6 +411,12 @@ if __name__=='__main__':
 		writer = pd.ExcelWriter(outanalypath)
 		#bond_kelly_df.to_excel(writer, 'kelly')
 		select_interest_some(writer, bond_kelly_df, 'kelly')
+		caption_df = pd.DataFrame({
+			'字段': ['volume (成交量)'],
+			'单位': ['张'],
+			'说明': ['akshare 数据源来自新浪财经，volume 单位为"张"（每张面值100元）。东方财富等主流 app 显示单位为"手"（1手=10张），因此本文件中的 volume 值是 app 显示值的 10 倍。']
+		})
+		caption_df.to_excel(writer, sheet_name='caption', index=False)
 		#writer.save()
 		writer.close()
 		print("kelly analy out path:" + outanalypath)
