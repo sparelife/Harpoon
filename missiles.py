@@ -106,7 +106,7 @@ def get_crash_dbscan_df(path,name):
 	print("crashlow:%f,crashhigh:%f,EPS:%f" %(crashlow,crashhigh,middlepes))
 
 	#first cluster to find abnormal days
-	outlier_det=DBSCAN(min_samples=2,eps=middlepes)
+	outlier_det=DBSCAN(min_samples=3,eps=middlepes)
 	clusters = outlier_det.fit_predict(bond_cov_crash_df[['crash']].values)
 	print("abnormal crash count:%d" % list(clusters).count(-1))
 	bond_cov_crash_df['flag'] = clusters
