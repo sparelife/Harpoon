@@ -66,14 +66,16 @@ def get_akshare_valanaly(stock, end, out_dir):
 		return outfile, shname
 
 def getkellybEx(value,expval,maxval,ltyear):
-		# 赔率=获胜时的净盈利/成本
-		# 利息损失 = (value*(1+大额存单利率)**2 -value) - (value*(1+到期利率)**2 - value)
-		deficit = value*(1+0.03)**ltyear - expval
+		# 赔率=获胜净盈利/失败亏损(简单价差口径,与README一致)
+		# 失败=持有到期拿到保底价 expval,相对买入价亏损 = value - expval
+		# 获胜=达到目标价 maxval,相对买入价盈利 = maxval - value
+		loss = value - expval
+		gain = maxval - value
 		kellyb = 0.01
-		if deficit <= 1:
-			kellyb = (maxval-value-deficit)/1
+		if loss <= 1:          # 保底价≥现价(正YTM/无下行),失败基本不亏,分母取1
+			kellyb = gain / 1
 		else:
-			kellyb = (maxval-value-deficit)/deficit
+			kellyb = gain / loss
 
 		#print("kellyb:%f" % (kellyb))
 		return kellyb
@@ -328,6 +330,8 @@ if __name__=='__main__':
 		bond_kelly_df = pd.DataFrame(columns=['名称', '代码', '胜率', '赔率', '下注比例','估值距离','当前价格','参考估价','保底涨幅','保底价格','剩余规模','交易周期','年均异动','最后异动','异动阈值','异动涨幅','最后崩溃','崩溃阈值'])
 		money = 'money'
 		distance = '估值距离'
+		strong_redeem_df = pd.read_excel('probability.xlsx', sheet_name='bayes')
+		strong_redeem_prob = dict(zip(strong_redeem_df['存续年限'], strong_redeem_df['强赎后验概率中位数']))
 		for i, bondrow in bond_interest_df.iterrows():
 			name = bondrow['name'];
 			bond = bondrow['code'];
@@ -352,10 +356,12 @@ if __name__=='__main__':
 			distancetval = bond_cov_valanaly_df.loc[totalcounts-1][distance]
 			datevalue  = bond_cov_valanaly_df.loc[totalcounts-1]['日期']
 			pricevalue = bond_cov_valanaly_df.loc[totalcounts-1]['收盘价']
-			wincounts = (bond_cov_valanaly_df[ bond_cov_valanaly_df[distance] > distancetval ]).shape[0]
-			print("totalcounts,wincounts,distancetval,datevalue :",totalcounts,wincounts,distancetval,datevalue)
-			#胜率=成功总次数/(成功总次数+失败总次数)
-			kellyp = wincounts / totalcounts
+			print("totalcounts,distancetval,datevalue :",totalcounts,distancetval,datevalue)
+			#胜率=probability.xlsx 按 存续年限(向上取整到0.1年) 查得的强赎后验概率
+			key = math.ceil(tradeyear * 10) / 10
+			key = round(min(6.0, max(0.6, key)), 1)   # 越界夹取到表边界 0.6~6.0
+			kellyp = strong_redeem_prob[key]
+			print("存续年限(取整0.1):%f,强赎概率:%f" % (key,kellyp))
 			#赔率=赎回时的盈利/失败时利息损失
 			kellyb = getkellybEx(pricevalue,expval,150,6-tradeyear)
 

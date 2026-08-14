@@ -66,14 +66,16 @@ def get_akshare_valanaly(stock, end, out_dir):
 		return outfile, shname
 
 def getkellybEx(value,expval,maxval,ltyear):
-		# 赔率=获胜时的净盈利/成本
-		# 利息损失 = (value*(1+大额存单利率)**2 -value) - (value*(1+到期利率)**2 - value)
-		deficit = value*(1+0.03)**ltyear - expval
+		# 赔率=获胜净盈利/失败亏损(简单价差口径,与README一致)
+		# 失败=持有到期拿到保底价 expval,相对买入价亏损 = value - expval
+		# 获胜=达到目标价 maxval,相对买入价盈利 = maxval - value
+		loss = value - expval
+		gain = maxval - value
 		kellyb = 0.01
-		if deficit <= 1:
-			kellyb = (maxval-value-deficit)/1
+		if loss <= 1:          # 保底价≥现价(正YTM/无下行),失败基本不亏,分母取1
+			kellyb = gain / 1
 		else:
-			kellyb = (maxval-value-deficit)/deficit
+			kellyb = gain / loss
 
 		#print("kellyb:%f" % (kellyb))
 		return kellyb
@@ -330,10 +332,7 @@ if __name__=='__main__':
 			prerate = bond_cov_valanaly_df.loc[totalcounts-1][ratio]
 			datevalue  = bond_cov_valanaly_df.loc[totalcounts-1]['日期']
 			pricevalue = bond_cov_valanaly_df.loc[totalcounts-1]['收盘价']
-			wincounts = (bond_cov_valanaly_df[ bond_cov_valanaly_df[ratio] > prerate ]).shape[0]
-			print("totalcounts,wincounts,prerate,datevalue :",totalcounts,wincounts,prerate,datevalue)
-			#胜率=成功总次数/(成功总次数+失败总次数)
-			kellyp = wincounts / totalcounts
+			print("totalcounts,prerate,datevalue :",totalcounts,prerate,datevalue)
 
 			dailysta = bond_cov_valanaly_df['收盘价'].describe()
 			valuemin = dailysta['min'];valuemax = dailysta['max'];value50 = dailysta['50%']
@@ -354,6 +353,13 @@ if __name__=='__main__':
 
 				bond_cov_abnormal_df = get_abnormal_dbscan_df(resultpath,insheetname)
 				cntguess,abnrate= guess_abnormal_parameter_additional(bond_cov_abnormal_df,tradeyear)
+				#卖出标准=某天日内涨幅(high-open)/open 超过异动阈值 abnrate
+				#胜率 = P(从现在到退市,至少一天日内涨幅 ≥ abnrate) = 1 - exp(-年均命中次数 × 剩余年限)
+				trade_gain_df = pd.read_excel(resultpath, insheetname)[['open','high']]
+				trade_gain_df['gain'] = 100*(trade_gain_df['high']-trade_gain_df['open'])/trade_gain_df['open']
+				hitcount = (trade_gain_df['gain'] >= abnrate).sum()
+				hitsperyear = hitcount / tradeyear
+				kellyp = 1 - math.exp(-hitsperyear * (6 - tradeyear))
 				valguess = pricevalue*(1+abnrate/100)
 				print("guess abnormal counts per year:%f,guess abnormal price:%f,guess abnormal rate per year:%f" % (cntguess,valguess,abnrate))
 
