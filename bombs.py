@@ -354,17 +354,17 @@ if __name__=='__main__':
 				bond_cov_abnormal_df = get_abnormal_dbscan_df(resultpath,insheetname)
 				cntguess,abnrate= guess_abnormal_parameter_additional(bond_cov_abnormal_df,tradeyear)
 				#卖出标准=某天日内涨幅(high-open)/open 超过异动阈值 abnrate
-				#胜率 = P(从现在到退市,至少一天日内涨幅 ≥ abnrate) = 1 - exp(-年均命中次数 × 剩余年限)
+				#胜率 = P(从现在到退市,至少有两天日内涨幅 ≥ abnrate) = 1 - exp(-年均命中次数 × 剩余年限) × (1 + 年均命中次数 × 剩余年限)
 				trade_gain_df = pd.read_excel(resultpath, insheetname)[['open','high']]
 				trade_gain_df['gain'] = 100*(trade_gain_df['high']-trade_gain_df['open'])/trade_gain_df['open']
 				hitcount = (trade_gain_df['gain'] >= abnrate).sum()
 				hitsperyear = hitcount / tradeyear
-				kellyp = 1 - math.exp(-hitsperyear * (6 - tradeyear))
-				valguess = pricevalue*(1+abnrate/100)
-				print("guess abnormal counts per year:%f,guess abnormal price:%f,guess abnormal rate per year:%f" % (cntguess,valguess,abnrate))
+				kellyp = 1 - math.exp(-hitsperyear * bondrow['lastyear']) * (1 + hitsperyear * bondrow['lastyear'])
+				#参考估价 = 所有异常波动交易日最高价的中位数
+				abnval = np.median(bond_cov_abnormal_df['high'])
+				print("guess abnormal counts per year:%f,abnormal high median:%f,guess abnormal rate per year:%f" % (cntguess,abnval,abnrate))
 
-				#赔率2=各次异动条件下最大盈利中位数/失败时利息损失
-				abnval = valguess
+				#赔率 = (参考估价-当前价)/(当前价-保底价)，参考估价=异常交易日最高价中位数
 				kellyb1 = getkellybEx(pricevalue,expval,abnval,6-tradeyear)
 				print("abnormalhighmiddle:%f" % abnval)
 
