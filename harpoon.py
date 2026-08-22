@@ -29,6 +29,9 @@ plt.rcParams['axes.unicode_minus']=False
 JISILU_CONFIG = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'jisilu_config.json')
 JISILU_COOKIE_FILE = os.path.expanduser('~/.jisilu_cookies.pkl')
 
+# 完整转债数据约 316 行；未登录/会话过期时只返回一页（约 30 行），据此判断登录态
+FULL_CB_LIST_MIN = 100
+
 def jisilu_encode(text, aes_key):
     """AES-128-ECB 加密，PKCS7 填充，输出 hex（与集思录前端 CryptoJS 一致）"""
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -104,6 +107,28 @@ def jisilu_login(username, password):
             print('提示：触发验证码，登录环境变更后重试')
         return None
 
+def jisilu_logged_in(sess):
+    """校验 Session 是否真正处于已登录状态。
+
+    只检查 HTTP 200 不够：未登录时首页也返回 200，过期 cookie 会静默通过，
+    导致 ak.bond_cb_jsl 只取到一页（约 30 行）而非全部（约 316 行）。
+    已登录时访问 /account/ 会跳转到 /setting/profile/（页面含「退出」）；
+    未登录会跳转到 /account/login/；会话无效时返回不含「退出」的短页面。
+    注意：取数接口在刚登录后有数分钟限流也会返回 30 行，故不拿它判断登录态。
+    """
+    if 'kbzw__user_login' not in dict(sess.cookies):
+        return False
+    try:
+        r = sess.get('https://www.jisilu.cn/account/', timeout=10)
+    except Exception:
+        return False
+    if r.status_code != 200:
+        return False
+    if '/account/login/' in r.url:
+        return False
+    return '退出' in r.text
+
+
 def ensure_jisilu_session():
     """返回有效 Session：优先用缓存，失效则重新登录"""
     # 尝试缓存
@@ -114,8 +139,7 @@ def ensure_jisilu_session():
             s = requests.Session()
             s.cookies.update(cookies)
             s.headers.update({'User-Agent': 'Mozilla/5.0'})
-            r = s.get('https://www.jisilu.cn/', timeout=10)
-            if r.status_code == 200:
+            if jisilu_logged_in(s):
                 print('使用缓存的登录状态')
                 return s
         except Exception:
@@ -134,7 +158,17 @@ def get_akshare_jsl(xlsfile,cookie):
     shname = 'jsl'
     isExist = os.path.exists(xlsfile)
     if not isExist:
-        bond_convert_jsl_df = ak.bond_cb_jsl(cookie)
+        try:
+            bond_convert_jsl_df = ak.bond_cb_jsl(cookie)
+        except Exception as e:
+            print('错误：集思录取数失败：%s' % e)
+            print('可能原因：登录态失效。请检查后重新运行。')
+            exit(1)
+        if bond_convert_jsl_df is None or len(bond_convert_jsl_df) < FULL_CB_LIST_MIN:
+            n = 0 if bond_convert_jsl_df is None else len(bond_convert_jsl_df)
+            print('错误：集思录取数不完整（仅 %s 行，预期 %d+ 行）。' % (n, FULL_CB_LIST_MIN))
+            print('可能原因：登录态失效，或刚登录后被限流。请等待几分钟后重新运行。')
+            exit(1)
         bond_convert_jsl_df.to_excel(xlsfile, sheet_name=shname)
 
         print("xfsfile:%s create" % (xlsfile))
