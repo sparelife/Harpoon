@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import akshare as ak
+import akshare_compat as ak_compat
 import numpy as np
 import pandas as pd
 import math
@@ -51,7 +52,7 @@ def get_akshare_valanaly(stock, end, out_dir):
 
 		isExist = os.path.exists(xlsfile)
 		if not isExist:
-			bond_zh_cov_value_analysis_df = ak.bond_zh_cov_value_analysis(symbol=stock)
+			bond_zh_cov_value_analysis_df = ak_compat.bond_zh_cov_value_analysis(symbol=stock)
 			bond_zh_cov_value_analysis_df.to_excel(xlsfile, sheet_name=shname)
 			print("xfsfile:%s create" % (xlsfile))
 		else:
@@ -94,6 +95,11 @@ def get_crash_dbscan_df(path,name):
 
 	bond_cov_crash_df = pd.read_excel(path, name)[['date','open','high','low','close','volume']]
 	bond_cov_crash_df = bond_cov_crash_df[ bond_cov_crash_df['open'] < 121 ]
+	crash_columns = ['date','open','high','low','close','volume','crash','flag','ts','type']
+	#从未开在121以下的债没有崩溃样本,返回空表由调用方置空崩溃指标
+	if bond_cov_crash_df.empty:
+		print("no crash sample(open<121), skip dbscan")
+		return pd.DataFrame(columns=crash_columns)
 	bond_cov_crash_df['crash'] = bond_cov_crash_df.apply(lambda row: 100*(row['low']-row['open'])/row['open'], axis=1)
 
 	#print(bond_cov_crash_df)
@@ -106,6 +112,11 @@ def get_crash_dbscan_df(path,name):
 
 	middlepes = middlesta['std']
 	print("crashlow:%f,crashhigh:%f,EPS:%f" %(crashlow,crashhigh,middlepes))
+
+	#样本太少导致中段标准差为nan/0时DBSCAN无法聚类,同样置空崩溃指标
+	if not np.isfinite(middlepes) or middlepes <= 0:
+		print("crash sample not enough to estimate EPS, skip dbscan")
+		return pd.DataFrame(columns=crash_columns)
 
 	#first cluster to find abnormal days
 	outlier_det=DBSCAN(min_samples=3,eps=middlepes)
@@ -383,8 +394,12 @@ if __name__=='__main__':
 			#异动指标
 			try:
 				bond_cov_collapse_df  = get_crash_dbscan_df(resultpath,insheetname)
-				collapselatest = bond_cov_collapse_df.iloc[-1, 0]
-				collapseminvol = np.max(bond_cov_collapse_df['crash'])
+				if bond_cov_collapse_df.empty:
+					collapselatest = np.nan
+					collapseminvol = np.nan
+				else:
+					collapselatest = bond_cov_collapse_df.iloc[-1, 0]
+					collapseminvol = np.max(bond_cov_collapse_df['crash'])
 
 				bond_cov_abnormal_df = get_abnormal_dbscan_df(resultpath,insheetname)
 				cntguess,abnrate = guess_abnormal_parameter_additional(bond_cov_abnormal_df,tradeyear)
