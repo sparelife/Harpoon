@@ -24,9 +24,22 @@
 ## 环境要求
 
 - Python 3.8+
-- 使用 `akshare` 虚拟环境（路径：`/opt/finance_env/venv/bin/python`）
-- 依赖：`pip install akshare pandas numpy matplotlib openpyxl scikit-learn "scipy>=1.8" requests cryptography`
+- 使用 `akshare` 虚拟环境（路径：`/Users/xiushu/Cloak/Finance/venv/bin/python`）
+- 依赖：`pip install akshare pandas numpy matplotlib openpyxl scikit-learn "scipy>=1.8" requests cryptography adjustText`
   （scipy 必须 `>=1.8`：sklearn 1.7.x 依赖 `scipy.sparse.csr_array`；若 scipy 被降级到 1.7.x，harpoon/bombs/missiles 都会在 `import sklearn` 时崩溃）
+- 中文字体：`~/.fonts/NotoSansCJKsc-{Regular,Bold}.otf`（harpoon.py 在 import 阶段就加载，缺失会直接崩在启动）。安装方法见 `../Finance/README.md`。
+
+## 已知坑
+
+### 取数只回 30 行 ≠ 登录态失效
+
+`harpoon.py` 在取到少于 100 行时会报「登录态失效，或刚登录后被限流」并退出。实测（2026-09-29）**刚登录后立刻取数几乎必然回 30 行**，这是集思录对新建会话的限流，不是 cookie 有问题：
+
+- 同一个 session、同一个 `ak.bond_cb_jsl(cookie)` 调用，几分钟后原样重跑就回 318 行。
+- 已确认 cookie 确实送达、登录确实有效（`/account/` 会 302 到 `/setting/profile/`）。
+- 判定口径：`listed=Y` 约 108 行，全量约 318 行；两者都远超 100 的阈值。
+
+**处理：等几分钟直接重跑**，不要反复重登（重登会刷新会话，反而再次触发限流）。
 
 ## 配置文件
 
@@ -61,8 +74,8 @@
   过滤条件在 jisilu_config.json 中配置
 
 示例:
-  /opt/finance_env/venv/bin/python harpoon.py
-  /opt/finance_env/venv/bin/python harpoon.py 2026-06-26
+  /Users/xiushu/Cloak/Finance/venv/bin/python harpoon.py
+  /Users/xiushu/Cloak/Finance/venv/bin/python harpoon.py 2026-06-26
 ```
 
 **输出目录结构：**
@@ -94,7 +107,7 @@ data/<YYYYMMDD>/
   <日期>        分析截止日期
 
 示例:
-  /opt/finance_env/venv/bin/python bombs.py data/20260625/2026_06_25_out.xlsx 2026-06-25
+  /Users/xiushu/Cloak/Finance/venv/bin/python bombs.py data/20260625/2026_06_25_out.xlsx 2026-06-25
 ```
 
 **输出：**
@@ -117,7 +130,7 @@ data/<输入日期目录>/
   <日期>        分析截止日期
 
 示例:
-  /opt/finance_env/venv/bin/python missiles.py data/20260625/2026_06_25_out.xlsx 2026-06-25
+  /Users/xiushu/Cloak/Finance/venv/bin/python missiles.py data/20260625/2026_06_25_out.xlsx 2026-06-25
 ```
 
 **输出：**

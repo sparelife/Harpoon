@@ -20,8 +20,8 @@ pd.set_option('display.max_columns',None)
 pd.set_option('display.width',1000)
 import matplotlib
 matplotlib.use('Agg')
-matplotlib.font_manager.fontManager.addfont(os.path.expanduser('~/.fonts/NotoSansCJKSC-Regular.ttf'))
-matplotlib.font_manager.fontManager.addfont(os.path.expanduser('~/.fonts/NotoSansCJKSC-Bold.ttf'))
+matplotlib.font_manager.fontManager.addfont(os.path.expanduser('~/.fonts/NotoSansCJKsc-Regular.otf'))
+matplotlib.font_manager.fontManager.addfont(os.path.expanduser('~/.fonts/NotoSansCJKsc-Bold.otf'))
 plt.rcParams['font.sans-serif']=['Noto Sans CJK SC', 'DejaVu Sans']
 plt.rcParams['axes.unicode_minus']=False
 
